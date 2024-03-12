@@ -64,6 +64,7 @@ class ReissueController extends Controller
         // dd($request->all());
         $reissueticket = new ReissueTicket();
         $reissueticket->ticket_no = $request->ticket;
+        $reissueticket->ticket_code = $request->ticket_code;
         $reissueticket->date = $request->reissue_date;
         $reissueticket->agent = $request->agent;
         $reissueticket->supplier = $request->supplier;
@@ -71,6 +72,7 @@ class ReissueController extends Controller
         $reissueticket->prev_supply_amount = $request->supplier_fare;
         $reissueticket->now_agent_fere = $request->agent_reissuefare;
         $reissueticket->now_supplier_fare = $request->supplier_reissuefare;
+        $reissueticket->user = Auth::id();
 
         $agentReissueFare = $request->input('agent_reissuefare');
         $supplierReissueFare = $request->input('supplier_reissuefare');

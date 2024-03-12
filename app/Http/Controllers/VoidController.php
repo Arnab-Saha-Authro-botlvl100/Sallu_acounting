@@ -112,6 +112,7 @@ class VoidController extends Controller
         // dd($request->all());
         $voidticket = new VoidTicket();
         $voidticket->ticket_no = $request->ticket;
+        $voidticket->ticket_code = $request->ticket_code;
         $voidticket->date = now();
         $voidticket->agent = $request->agent;
         $voidticket->supplier = $request->supplier;
@@ -119,7 +120,7 @@ class VoidController extends Controller
         $voidticket->prev_supply_amount = $request->supplier_fare;
         $voidticket->now_agent_fere = $request->agent_refundfare;
         $voidticket->now_supplier_fare = $request->supplier_refundfare;
-
+        $voidticket->user = Auth::id();
         $agentRefundFare = $request->input('agent_refundfare');
         $supplierRefundFare = $request->input('supplier_refundfare');
         $profit = $agentRefundFare - $supplierRefundFare;

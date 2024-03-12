@@ -859,6 +859,7 @@
                     tableHtml += '<input type="hidden" name="airlines_name" value="' + airlines_name + '">';
                     tableHtml += '<input type="hidden" name="airlines_code" value="' + airlines_code + '">';
                     tableHtml += '<input type="hidden" name="remark" value="' + remark + '">';
+                    tableHtml += '<input type="hidden" name="stuff" value="' + stuff + '">';
                     tableHtml += '<input type="hidden" name="ait" value="' + aitticket + '">';
                     tableHtml += '<input type="hidden" name="ait_amount" value="' + aitticket + '">';
                     tableHtml += '</tbody>';

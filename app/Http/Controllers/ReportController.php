@@ -1580,6 +1580,274 @@ class ReportController extends Controller
         return view('report.sales_ticket.index', compact('suppliers', 'agents', 'types'));
     }
 
+
+    public function segment_view(){
+        return view('report.segment.index');
+    }
+
+    public function sector_city_view(){
+    
+        $cities = Ticket::where([
+            ['is_delete', 0],
+            ['is_active', 1]
+        ])
+        ->distinct()
+        ->pluck('s_from');
+
+        $cities2 = Ticket::where([
+            ['is_delete', 0],
+            ['is_active', 1]
+        ])
+        ->distinct()
+        ->pluck('e_to');
+
+        // dd($cities, $cities2);
+        return view('report.sector_city.index', compact('cities', 'cities2'));
+    }
+
+    public function segment_report(Request $request){
+
+     
+        $start_date = $request->input('start_date') ?? null;
+        $end_date = $request->input('end_date') ?? null;
+
+        if ($start_date) {
+            $start_date = (new DateTime($start_date))->format('Y-m-d');
+        }
+        
+        if ($end_date) {
+            $end_date = (new DateTime($end_date))->format('Y-m-d');
+        }
+        
+        $user = Auth::id();
+        
+       $query = DB::table('tickets')
+            ->where([
+                ['is_active', 1],
+                ['is_delete', 0],
+                ['user', $user],
+            ]);
+         
+
+            if ($start_date !== null && $end_date !== null) {
+                $query->whereBetween('invoice_date', [$start_date, $end_date]);
+            }
+            $alldata = $query->get();
+
+            $totalCount = 0;
+            $totalSupplierPrice = 0;
+            
+            foreach ($alldata as $data) {
+                $sector = $data->sector;
+                $parts = explode('-', $sector);
+                $count = count($parts) - 1;
+                $data->count = $count;
+                $totalCount += $count;
+            
+                // Assuming $supplier_price is a property of the $data object
+                $totalSupplierPrice += $data->supplier_price;
+            }
+            
+        // dd($alldata);
+        $htmlTable = '';
+       
+        $htmlTable = '
+        <h2 class="text-center font-bold text-3xl my-2">Segment Report </h2>
+        <div class="flex items-center justify-between mb-2">
+            <div class="text-lg">
+                <h2 class="font-semibold">Company Name : Sallu Air Service</h2>
+                <p><span class="font-semibold">Period Date :</span>' . $start_date . ' to ' . $end_date . '</p> 
+            </div>
+            <div class="flex items-center">
+                
+                
+            </div>
+        </div>
+        <table class="table-auto w-full border-2 border-gray-400 devide-2 text-sm my-1">
+        <thead>
+            <tr class="border-y-2 border-black bg-cyan-700 text-white">
+                <th class="text-start">SL</th>
+                <th class="text-start">Ticket No</th>
+                <th class="text-start">Passenger Name</th>
+                <th class="text-start">Sector</th>
+                <th class="text-start">GDS</th>
+                <th class="text-start">Airlines</th>
+                
+                
+                <th class="text-start">Sector No</th>
+                <th class="text-start">Payable Amount</th>
+                
+            </tr>
+        </thead>
+        <tbody class="divide-y-2">';
+
+        // Loop through each record in $alldata and add a row to the table
+        foreach ($alldata as $index=> $data) {
+            $htmlTable .= '<tr>
+                <td>' . $index + 1 . '</td>
+               
+                <td>' . $data->ticket_code.'-'.$data->ticket_no . '</td>
+                <td>' . $data->passenger . '</td>
+               
+                <td>' . $data->sector . '</td>
+                <td>' . '1G' . '</td>
+                <td>' . $data->airline_name . '</td>
+                
+                
+                <td>' . $data->count . '</td>
+                <td>' . $data->supplier_price . '</td>
+               
+            </tr>';
+        }
+
+        $htmlTable .= '<tr class="bg-green"> 
+                        <td></td> 
+                        <td></td> 
+                        <td></td> 
+                        <td></td> 
+                        
+                        <td colspan="2">Total Segment: </td>
+                        <td>' . $totalCount . '</td>
+                        <td>' . $totalSupplierPrice . '</td>
+                        </tr>';
+
+        // Close the HTML table
+        $htmlTable .= '</tbody></table>';
+            
+
+           
+          
+      
+        return $htmlTable;
+    }
+
+    public function sector_city_report(Request $request){
+
+     
+        $start_date = $request->input('start_date') ?? null;
+        $end_date = $request->input('end_date') ?? null;
+        $start = $request->input('start_from') ?? null;
+        $end = $request->input('end_to') ?? null;
+
+        if ($start_date) {
+            $start_date = (new DateTime($start_date))->format('Y-m-d');
+        }
+        
+        if ($end_date) {
+            $end_date = (new DateTime($end_date))->format('Y-m-d');
+        }
+        
+        $user = Auth::id();
+        
+       $query = DB::table('tickets')
+            ->where([
+                ['is_active', 1],
+                ['is_delete', 0],
+                ['user', $user],
+            ]);
+
+            if($start){
+                $query->where('s_from', $start);
+            }
+         
+            if($end){
+                $query->where('e_to', $end);
+            }
+         
+
+            if ($start_date !== null && $end_date !== null) {
+                $query->whereBetween('invoice_date', [$start_date, $end_date]);
+            }
+            $alldata = $query->get();
+
+            $totalCount = 0;
+            $totalSupplierPrice = 0;
+            
+            foreach ($alldata as $data) {
+                $sector = $data->sector;
+                $parts = explode('-', $sector);
+                $count = count($parts) - 1;
+                $data->count = $count;
+                $totalCount += $count;
+            
+                // Assuming $supplier_price is a property of the $data object
+                $totalSupplierPrice += $data->supplier_price;
+            }
+            
+        // dd($alldata);
+        $htmlTable = '';
+       
+        $htmlTable = '
+        <h2 class="text-center font-bold text-3xl my-2">Segment Report </h2>
+        <div class="flex items-center justify-between mb-2">
+            <div class="text-lg">
+                <h2 class="font-semibold">Company Name : Sallu Air Service</h2>
+                <p><span class="font-semibold">Period Date :</span>' . $start_date . ' to ' . $end_date . '</p> 
+            </div>
+            <div class="flex items-center">
+                
+                
+            </div>
+        </div>
+        <table class="table-auto w-full border-2 border-gray-400 devide-2 text-sm my-1">
+        <thead>
+            <tr class="border-y-2 border-black bg-cyan-700 text-white">
+                <th class="text-start">SL</th>
+                <th class="text-start">Ticket No</th>
+                <th class="text-start">Passenger Name</th>
+                <th class="text-start">Sector</th>
+                <th class="text-start">GDS</th>
+                <th class="text-start">Airlines</th>
+                
+                
+                <th class="text-start">Sector No</th>
+                <th class="text-start">Payable Amount</th>
+                
+            </tr>
+        </thead>
+        <tbody class="divide-y-2">';
+
+        // Loop through each record in $alldata and add a row to the table
+        foreach ($alldata as $index=> $data) {
+            $htmlTable .= '<tr>
+                <td>' . $index + 1 . '</td>
+               
+                <td>' . $data->ticket_code.'-'.$data->ticket_no . '</td>
+                <td>' . $data->passenger . '</td>
+               
+                <td>' . $data->sector . '</td>
+                <td>' . '1G' . '</td>
+                <td>' . $data->airline_name . '</td>
+                
+                
+                <td>' . $data->count . '</td>
+                <td>' . $data->supplier_price . '</td>
+               
+            </tr>';
+        }
+
+        $htmlTable .= '<tr class="bg-green"> 
+                        <td></td> 
+                        <td></td> 
+                        <td></td> 
+                        <td></td> 
+                        
+                        <td colspan="2">Total Segment: </td>
+                        <td>' . $totalCount . '</td>
+                        <td>' . $totalSupplierPrice . '</td>
+                        </tr>';
+
+        // Close the HTML table
+        $htmlTable .= '</tbody></table>';
+            
+
+           
+          
+      
+        return $htmlTable;
+    }
+
+
     public function sales_report_ticket(Request $request){
 
         $agent = $request->input('agent') ?? null;
@@ -1846,6 +2114,557 @@ class ReportController extends Controller
 
         return $htmlTable;
     }
+    
+    public function void_ticket(){
+        $user = Auth::id();
+        $suppliers = Supplier::where([['is_delete',0],['is_active',1],['user',$user]])->get();
+        $agents = Agent::where([['is_delete',0],['is_active',1],['user',$user]])->get();
+        // $types = Type::where([['is_delete',0],['is_active',1],['user',$user]])->get();
+        // $orders = Order::where([['is_delete',0],['is_active',1],['user', $user]])->get();
+        return view('report.void_ticket.index', compact('suppliers', 'agents'));
+    }
+
+    public function reissue_ticket(){
+        $user = Auth::id();
+        $suppliers = Supplier::where([['is_delete',0],['is_active',1],['user',$user]])->get();
+        $agents = Agent::where([['is_delete',0],['is_active',1],['user',$user]])->get();
+        return view('report.reissue_ticket.index', compact('suppliers', 'agents'));
+    }
+
+    public function void_ticket_report(Request $request){
+
+        $agent = $request->input('agent') ?? null;
+        $supplier = $request->input('supplier') ?? null;
+    
+        $show_profit = $request->input('show_profit') ?? null;
+        $show_supplier = $request->input('show_supplier') ?? null;
+        $show_agent = $request->input('show_agent') ?? null;
+
+        $start_date = $request->input('start_date') ?? null;
+        $end_date = $request->input('end_date') ?? null;
+
+        if ($start_date) {
+            $start_date = (new DateTime($start_date))->format('Y-m-d');
+        }
+        
+        if ($end_date) {
+            $end_date = (new DateTime($end_date))->format('Y-m-d');
+        }
+        
+        $user = Auth::id();
+        
+        $query = DB::table('voidticket')
+            ->leftJoin('tickets', function($join) {
+                $join->on('voidticket.ticket_no', '=', 'tickets.ticket_no')
+                    ->where('tickets.ticket_code', '=', DB::raw('voidticket.ticket_code'));
+            })
+            ->where('voidticket.user', $user);
+        
+        if ($agent !== null) {
+            $query->where('voidticket.agent', $agent);
+        }
+        
+        if ($supplier !== null) {
+            $query->where('voidticket.supplier', $supplier);
+        }
+        
+        if ($start_date !== null && $end_date !== null) {
+            $query->whereBetween('voidticket.date', [$start_date, $end_date]);
+        }
+        
+        $alldata = $query->get();
+    
+        // dd($alldata, $supplier, $agent);
+        $htmlTable = '';
+        if($show_profit != null || $show_supplier != null || $show_agent != null) {
+
+
+            if($show_profit != null && $show_supplier == null && $show_agent == null){
+                $htmlTable = '
+                <h2 class="text-center font-bold text-3xl my-2">Sales Report (Ticket)</h2>
+                <div class="flex items-center justify-between mb-2">
+                    <div class="text-lg">
+                        <h2 class="font-semibold">Company Name : Sallu Air Service</h2>
+                        <p><span class="font-semibold">Period Date :</span>' . $start_date . ' to ' . $end_date . '</p> 
+                    </div>
+                    <div class="flex items-center">
+                       
+                        
+                    </div>
+                </div>
+                <table class="table-auto w-full border-2 border-gray-400 devide-2 text-sm my-1">
+                <thead>
+                <tr class="border-y-2 border-black bg-cyan-700 text-white">
+                    <th class="text-start">Date</th>
+                    <th class="text-start">Ticket No</th>
+                    <th class="text-start">Passenger Name</th>
+                    
+                 
+                    <th class="text-start">Flight Date</th>
+                    <th class="text-start">Sector</th>
+                    <th class="text-start">Airlines</th>
+                   
+                    
+                    <th class="text-start">Net Markup (Void)</th>
+                 
+                </tr>
+                </thead>
+                <tbody class="divide-y-2">';
+
+                // Loop through each record in $alldata and add a row to the table
+                foreach ($alldata as $data) {
+                    $htmlTable .= '<tr>
+                        <td>' . (new DateTime($data->date))->format('d-m-Y') . '</td>
+                        <td>' . $data->ticket_code.'-'.$data->ticket_no . '</td>
+                        <td>' . $data->passenger . '</td>
+                      
+                        <td>' . (new DateTime($data->flight_date))->format('d-m-Y') . '</td>
+                        <td>' . $data->sector . '</td>
+                        <td>' . $data->airline_name . '</td>
+                       
+                     
+                        <td>' . $data->void_profit . '</td>
+                       
+                    </tr>';
+                }
+
+                // Close the HTML table
+                $htmlTable .= '</tbody></table>';
+            }
+
+            elseif($show_supplier != null && $show_profit == null && $show_agent != null){
+                $htmlTable = '
+                <h2 class="text-center font-bold text-3xl my-2">Sales Report (Ticket)</h2>
+                <div class="flex items-center justify-between mb-2">
+                    <div class="text-lg">
+                        <h2 class="font-semibold">Company Name : Sallu Air Service</h2>
+                        <p><span class="font-semibold">Period Date :</span>' . $start_date . ' to ' . $end_date . '</p> 
+                    </div>
+                    <div class="flex items-center">
+                       
+                        
+                    </div>
+                </div>
+                <table class="table-auto w-full border-2 border-gray-400 devide-2 text-sm my-1">
+                <thead>
+                <tr class="border-y-2 border-black bg-cyan-700 text-white">
+                    <th class="text-start">Date</th>
+                    <th class="text-start">Ticket No</th>
+                    <th class="text-start">Passenger Name</th>
+                    <th class="text-start">Client</th>
+                    <th class="text-start">Supplier</th>
+                    <th class="text-start">Flight Date</th>
+                    <th class="text-start">Sector</th>
+                    <th class="text-start">Airlines</th>
+                    <th class="text-start">Client New Price</th>
+                    <th class="text-start">Client Previous Price</th>
+                    <th class="text-start">Supplier New Price</th>
+                    <th class="text-start">Supplier Previous Price</th>
+                 
+                </tr>
+                </thead>
+                <tbody class="divide-y-2">';
+
+                // Loop through each record in $alldata and add a row to the table
+                foreach ($alldata as $data) {
+                    $htmlTable .= '<tr>
+                        <td>' . (new DateTime($data->date))->format('d-m-Y') . '</td>
+                        <td>' . $data->ticket_code.'-'.$data->ticket_no . '</td>
+                        <td>' . $data->passenger . '</td>
+                        <td>' . Agent::where('id',$data->agent)->value('name') . '</td>
+                        <td>' . Supplier::where('id',$data->supplier)->value('name') . '</td>
+                        <td>' . (new DateTime($data->flight_date))->format('d-m-Y') . '</td>
+                        <td>' . $data->sector . '</td>
+                        <td>' . $data->airline_name . '</td>
+                        <td>' . $data->now_agent_fere . '</td>
+                        <td>' . $data->prev_agent_amount . '</td>
+                        <td>' . $data->now_supplier_fare . '</td>
+                        <td>' . $data->prev_supply_amount . '</td>
+                       
+                    </tr>';
+                }
+
+                // Close the HTML table
+                $htmlTable .= '</tbody></table>';
+            }
+
+            elseif($show_supplier != null && $show_profit != null && $show_agent != null){
+                $htmlTable = '
+                <h2 class="text-center font-bold text-3xl my-2">Sales Report (Ticket)</h2>
+                <div class="flex items-center justify-between mb-2">
+                    <div class="text-lg">
+                        <h2 class="font-semibold">Company Name : Sallu Air Service</h2>
+                        <p><span class="font-semibold">Period Date :</span>' . $start_date . ' to ' . $end_date . '</p> 
+                    </div>
+                    <div class="flex items-center">
+                       
+                        
+                    </div>
+                </div>
+                <table class="table-auto w-full border-2 border-gray-400 devide-2 text-sm my-1">
+                <thead>
+                <tr class="border-y-2 border-black bg-cyan-700 text-white">
+                    <th class="text-start">Date</th>
+                    <th class="text-start">Ticket No</th>
+                    <th class="text-start">Passenger Name</th>
+                    <th class="text-start">Client</th>
+                    <th class="text-start">Supplier</th>
+                  
+                    <th class="text-start">Flight Date</th>
+                    <th class="text-start">Sector</th>
+                    <th class="text-start">Airlines</th>
+                    <th class="text-start">Client New Price</th>
+                    <th class="text-start">Client Previous Price</th>
+                    <th class="text-start">Supplier New Price</th>
+                    <th class="text-start">Supplier Previous Price</th>
+                    <th class="text-start">Net Markup (Void)</th>
+                    
+                </tr>
+                </thead>
+                <tbody class="divide-y-2">';
+
+                // Loop through each record in $alldata and add a row to the table
+                foreach ($alldata as $data) {
+                    $htmlTable .= '<tr>
+                        <td>' . (new DateTime($data->date))->format('d-m-Y') . '</td>
+                        <td>' . $data->ticket_code.'-'.$data->ticket_no . '</td>
+                        <td>' . $data->passenger . '</td>
+                        <td>' . Agent::where('id',$data->agent)->value('name') . '</td>
+                        <td>' . Supplier::where('id',$data->agent)->value('name') . '</td>
+                      
+                        <td>' . (new DateTime($data->flight_date))->format('d-m-Y') . '</td>
+                        <td>' . $data->sector . '</td>
+                        <td>' . $data->airline_name . '</td>
+                        <td>' . $data->now_agent_fere . '</td>
+                        <td>' . $data->prev_agent_amount . '</td>
+                        <td>' . $data->now_supplier_fare . '</td>
+                        <td>' . $data->prev_supply_amount . '</td>
+                        <td>' . $data->void_profit . '</td>
+                    </tr>';
+                }
+
+                // Close the HTML table
+                $htmlTable .= '</tbody></table>';
+            }
+          
+        }
+        else{
+            $htmlTable = '
+            <h2 class="text-center font-bold text-3xl my-2">Sales Report (Ticket)</h2>
+            <div class="flex items-center justify-between mb-2">
+                <div class="text-lg">
+                    <h2 class="font-semibold">Company Name : Sallu Air Service</h2>
+                    <p><span class="font-semibold">Period Date :</span>' . $start_date . ' to ' . $end_date . '</p> 
+                    </div>
+                <div class="flex items-center">
+                   
+                    
+                </div>
+            </div>
+            <table class="table-auto w-full border-2 border-gray-400 devide-2 text-sm my-1">
+            <thead>
+            <tr class="border-y-2 border-black bg-cyan-700 text-white">
+                <th class="text-start"> Date</th>
+                <th class="text-start">Ticket No</th>
+                <th class="text-start">Passenger Name</th>
+              
+                <th class="text-start">Flight Date</th>
+                <th class="text-start">Sector</th>
+                <th class="text-start">Airlines</th>
+               
+               
+            </tr>
+            </thead>
+            <tbody class="divide-y-2">';
+
+            // Loop through each record in $alldata and add a row to the table
+            foreach ($alldata as $data) {
+                $htmlTable .= '<tr>
+                    <td>' . (new DateTime($data->invoice_date))->format('d-m-Y') . '</td>
+                    <td>' . $data->ticket_code.'-'.$data->ticket_no . '</td>
+                    <td>' . $data->passenger . '</td>
+                 
+                    <td>' . (new DateTime($data->flight_date))->format('d-m-Y') . '</td>
+                    <td>' . $data->sector . '</td>
+                    <td>' . $data->airline_name . '</td>
+                </tr>';
+            }
+
+            // Close the HTML table
+            $htmlTable .= '</tbody></table>';
+
+        }
+
+        return $htmlTable;
+    }
+
+    public function reissue_ticket_report(Request $request){
+
+        $agent = $request->input('agent') ?? null;
+        $supplier = $request->input('supplier') ?? null;
+    
+        $show_profit = $request->input('show_profit') ?? null;
+        $show_supplier = $request->input('show_supplier') ?? null;
+        $show_agent = $request->input('show_agent') ?? null;
+
+        $start_date = $request->input('start_date') ?? null;
+        $end_date = $request->input('end_date') ?? null;
+
+        if ($start_date) {
+            $start_date = (new DateTime($start_date))->format('Y-m-d');
+        }
+        
+        if ($end_date) {
+            $end_date = (new DateTime($end_date))->format('Y-m-d');
+        }
+        
+        $user = Auth::id();
+        
+        $query = DB::table('reissue')
+            ->leftJoin('tickets', function($join) {
+                $join->on('reissue.ticket_no', '=', 'tickets.ticket_no')
+                    ->where('tickets.ticket_code', '=', DB::raw('reissue.ticket_code'));
+            })
+            ->where('reissue.user', $user);
+        
+        if ($agent !== null) {
+            $query->where('reissue.agent', $agent);
+        }
+        
+        if ($supplier !== null) {
+            $query->where('reissue.supplier', $supplier);
+        }
+        
+        if ($start_date !== null && $end_date !== null) {
+            $query->whereBetween('reissue.date', [$start_date, $end_date]);
+        }
+        
+        $alldata = $query->get();
+    
+        // dd($alldata, $supplier, $agent);
+        $htmlTable = '';
+        if($show_profit != null || $show_supplier != null || $show_agent != null) {
+
+
+            if($show_profit != null && $show_supplier == null && $show_agent == null){
+                $htmlTable = '
+                <h2 class="text-center font-bold text-3xl my-2">Sales Report (Ticket)</h2>
+                <div class="flex items-center justify-between mb-2">
+                    <div class="text-lg">
+                        <h2 class="font-semibold">Company Name : Sallu Air Service</h2>
+                        <p><span class="font-semibold">Period Date :</span>' . $start_date . ' to ' . $end_date . '</p> 
+                    </div>
+                    <div class="flex items-center">
+                       
+                        
+                    </div>
+                </div>
+                <table class="table-auto w-full border-2 border-gray-400 devide-2 text-sm my-1">
+                <thead>
+                <tr class="border-y-2 border-black bg-cyan-700 text-white">
+                    <th class="text-start">Date</th>
+                    <th class="text-start">Ticket No</th>
+                    <th class="text-start">Passenger Name</th>
+                    
+                 
+                    <th class="text-start">Flight Date</th>
+                    <th class="text-start">Sector</th>
+                    <th class="text-start">Airlines</th>
+                   
+                    
+                    <th class="text-start">Net Markup (Void)</th>
+                 
+                </tr>
+                </thead>
+                <tbody class="divide-y-2">';
+
+                // Loop through each record in $alldata and add a row to the table
+                foreach ($alldata as $data) {
+                    $htmlTable .= '<tr>
+                        <td>' . (new DateTime($data->date))->format('d-m-Y') . '</td>
+                        <td>' . $data->ticket_code.'-'.$data->ticket_no . '</td>
+                        <td>' . $data->passenger . '</td>
+                      
+                        <td>' . (new DateTime($data->flight_date))->format('d-m-Y') . '</td>
+                        <td>' . $data->sector . '</td>
+                        <td>' . $data->airline_name . '</td>
+                       
+                     
+                        <td>' . $data->void_profit . '</td>
+                       
+                    </tr>';
+                }
+
+                // Close the HTML table
+                $htmlTable .= '</tbody></table>';
+            }
+
+            elseif($show_supplier != null && $show_profit == null && $show_agent != null){
+                $htmlTable = '
+                <h2 class="text-center font-bold text-3xl my-2">Sales Report (Ticket)</h2>
+                <div class="flex items-center justify-between mb-2">
+                    <div class="text-lg">
+                        <h2 class="font-semibold">Company Name : Sallu Air Service</h2>
+                        <p><span class="font-semibold">Period Date :</span>' . $start_date . ' to ' . $end_date . '</p> 
+                    </div>
+                    <div class="flex items-center">
+                       
+                        
+                    </div>
+                </div>
+                <table class="table-auto w-full border-2 border-gray-400 devide-2 text-sm my-1">
+                <thead>
+                <tr class="border-y-2 border-black bg-cyan-700 text-white">
+                    <th class="text-start">Date</th>
+                    <th class="text-start">Ticket No</th>
+                    <th class="text-start">Passenger Name</th>
+                    <th class="text-start">Client</th>
+                    <th class="text-start">Supplier</th>
+                    <th class="text-start">Flight Date</th>
+                    <th class="text-start">Sector</th>
+                    <th class="text-start">Airlines</th>
+                    <th class="text-start">Client New Price</th>
+                    <th class="text-start">Client Previous Price</th>
+                    <th class="text-start">Supplier New Price</th>
+                    <th class="text-start">Supplier Previous Price</th>
+                 
+                </tr>
+                </thead>
+                <tbody class="divide-y-2">';
+
+                // Loop through each record in $alldata and add a row to the table
+                foreach ($alldata as $data) {
+                    $htmlTable .= '<tr>
+                        <td>' . (new DateTime($data->date))->format('d-m-Y') . '</td>
+                        <td>' . $data->ticket_code.'-'.$data->ticket_no . '</td>
+                        <td>' . $data->passenger . '</td>
+                        <td>' . Agent::where('id',$data->agent)->value('name') . '</td>
+                        <td>' . Supplier::where('id',$data->supplier)->value('name') . '</td>
+                        <td>' . (new DateTime($data->flight_date))->format('d-m-Y') . '</td>
+                        <td>' . $data->sector . '</td>
+                        <td>' . $data->airline_name . '</td>
+                        <td>' . $data->now_agent_fere . '</td>
+                        <td>' . $data->prev_agent_amount . '</td>
+                        <td>' . $data->now_supplier_fare . '</td>
+                        <td>' . $data->prev_supply_amount . '</td>
+                       
+                    </tr>';
+                }
+
+                // Close the HTML table
+                $htmlTable .= '</tbody></table>';
+            }
+
+            elseif($show_supplier != null && $show_profit != null && $show_agent != null){
+                $htmlTable = '
+                <h2 class="text-center font-bold text-3xl my-2">Sales Report (Ticket)</h2>
+                <div class="flex items-center justify-between mb-2">
+                    <div class="text-lg">
+                        <h2 class="font-semibold">Company Name : Sallu Air Service</h2>
+                        <p><span class="font-semibold">Period Date :</span>' . $start_date . ' to ' . $end_date . '</p> 
+                    </div>
+                    <div class="flex items-center">
+                       
+                        
+                    </div>
+                </div>
+                <table class="table-auto w-full border-2 border-gray-400 devide-2 text-sm my-1">
+                <thead>
+                <tr class="border-y-2 border-black bg-cyan-700 text-white">
+                    <th class="text-start">Date</th>
+                    <th class="text-start">Ticket No</th>
+                    <th class="text-start">Passenger Name</th>
+                    <th class="text-start">Client</th>
+                    <th class="text-start">Supplier</th>
+                  
+                    <th class="text-start">Flight Date</th>
+                    <th class="text-start">Sector</th>
+                    <th class="text-start">Airlines</th>
+                    <th class="text-start">Client New Price</th>
+                    <th class="text-start">Client Previous Price</th>
+                    <th class="text-start">Supplier New Price</th>
+                    <th class="text-start">Supplier Previous Price</th>
+                    <th class="text-start">Net Markup (Void)</th>
+                    
+                </tr>
+                </thead>
+                <tbody class="divide-y-2">';
+
+                // Loop through each record in $alldata and add a row to the table
+                foreach ($alldata as $data) {
+                    $htmlTable .= '<tr>
+                        <td>' . (new DateTime($data->date))->format('d-m-Y') . '</td>
+                        <td>' . $data->ticket_code.'-'.$data->ticket_no . '</td>
+                        <td>' . $data->passenger . '</td>
+                        <td>' . Agent::where('id',$data->agent)->value('name') . '</td>
+                        <td>' . Supplier::where('id',$data->agent)->value('name') . '</td>
+                      
+                        <td>' . (new DateTime($data->flight_date))->format('d-m-Y') . '</td>
+                        <td>' . $data->sector . '</td>
+                        <td>' . $data->airline_name . '</td>
+                        <td>' . $data->now_agent_fere . '</td>
+                        <td>' . $data->prev_agent_amount . '</td>
+                        <td>' . $data->now_supplier_fare . '</td>
+                        <td>' . $data->prev_supply_amount . '</td>
+                        <td>' . $data->void_profit . '</td>
+                    </tr>';
+                }
+
+                // Close the HTML table
+                $htmlTable .= '</tbody></table>';
+            }
+          
+        }
+        else{
+            $htmlTable = '
+            <h2 class="text-center font-bold text-3xl my-2">Sales Report (Ticket)</h2>
+            <div class="flex items-center justify-between mb-2">
+                <div class="text-lg">
+                    <h2 class="font-semibold">Company Name : Sallu Air Service</h2>
+                    <p><span class="font-semibold">Period Date :</span>' . $start_date . ' to ' . $end_date . '</p> 
+                    </div>
+                <div class="flex items-center">
+                   
+                    
+                </div>
+            </div>
+            <table class="table-auto w-full border-2 border-gray-400 devide-2 text-sm my-1">
+            <thead>
+            <tr class="border-y-2 border-black bg-cyan-700 text-white">
+                <th class="text-start"> Date</th>
+                <th class="text-start">Ticket No</th>
+                <th class="text-start">Passenger Name</th>
+              
+                <th class="text-start">Flight Date</th>
+                <th class="text-start">Sector</th>
+                <th class="text-start">Airlines</th>
+               
+               
+            </tr>
+            </thead>
+            <tbody class="divide-y-2">';
+
+            // Loop through each record in $alldata and add a row to the table
+            foreach ($alldata as $data) {
+                $htmlTable .= '<tr>
+                    <td>' . (new DateTime($data->invoice_date))->format('d-m-Y') . '</td>
+                    <td>' . $data->ticket_code.'-'.$data->ticket_no . '</td>
+                    <td>' . $data->passenger . '</td>
+                 
+                    <td>' . (new DateTime($data->flight_date))->format('d-m-Y') . '</td>
+                    <td>' . $data->sector . '</td>
+                    <td>' . $data->airline_name . '</td>
+                </tr>';
+            }
+
+            // Close the HTML table
+            $htmlTable .= '</tbody></table>';
+
+        }
+
+        return $htmlTable;
+    }
+
     public function sales_analysis(){
         return view('report.sales_analysis.index');
     }

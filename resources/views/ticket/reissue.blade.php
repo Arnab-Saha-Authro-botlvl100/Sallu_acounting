@@ -22,6 +22,7 @@
                     <div class="mb-4 flex items-center justify-between gap-6">
                         <label for="ticket" class="block text-md font-semibold text-black ">Ticket Search:</label>
                         <input type="text" class=" mt-1 block w-[65%] border p-1" id="ticket" name="ticket" required>
+                        <input type="hidden" class=" mt-1 block w-[65%] border p-1" id="ticket_code" name="ticket_code" required>
                     </div>
                     <div class="mb-4 flex items-center justify-between gap-6">
                         <label for="name" class="block text-md font-semibold text-black ">Passenger Name:</label>
@@ -145,6 +146,7 @@
                         if (response.status === 'success') {
                             // Ticket found
                             $('#name').val(response.ticket.passenger);
+                            $('#ticket_code').val(response.ticket.ticket_code);
                             $('#flight').val(response.ticket.flight_no);
                             $('#flight_date').val(response.ticket.flight_date);
                             $('#sector').val(response.ticket.sector);

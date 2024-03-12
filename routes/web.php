@@ -145,6 +145,16 @@ Route::get('/void/view', function () {
 })->name('void.view');
 Route::post('/ticket_void', [VoidController::class, 'void_entry'])->name('ticket_void');
 
+Route::get('/segment/view', function () {
+    return app(ReportController::class)->segment_view();
+})->name('segment.view');
+Route::post('/segment_report', [ReportController::class, 'segment_report'])->name('segment_report');
+
+Route::get('/sector_city/view', function () {
+    return app(ReportController::class)->sector_city_view();
+})->name('sector_city.view');
+Route::post('/sector_city_report', [ReportController::class, 'sector_city_report'])->name('sector_city_report');
+
 Route::get('/adm/view', function () {
     return app(ADMController::class)->view();
 })->name('adm.view');
@@ -185,6 +195,12 @@ Route::get('/due_reminder_specific', [ReportController::class, 'due_reminder_spe
 
 Route::get('/sales_ticket', [ReportController::class, 'sales_ticket'])->name('sales_ticket');
 Route::post('/sales_report_ticket', [ReportController::class, 'sales_report_ticket'])->name('seles_report_ticket');
+
+Route::get('/void_ticket', [ReportController::class, 'void_ticket'])->name('void_ticket');
+Route::post('/void_ticket_report', [ReportController::class, 'void_ticket_report'])->name('void_ticket_report');
+
+Route::get('/reissue_ticket', [ReportController::class, 'reissue_ticket'])->name('reissue_ticket');
+Route::post('/reissue_ticket_report', [ReportController::class, 'reissue_ticket_report'])->name('reissue_ticket_report');
 
 Route::get('/sales_analysis', [ReportController::class, 'sales_analysis'])->name('sales_analysis');
 Route::post('/sales_analysis_report', [ReportController::class, 'sales_analysis_report'])->name('sales_analysis_report');

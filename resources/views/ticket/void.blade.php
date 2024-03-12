@@ -28,6 +28,10 @@
                         <input type="text" class="form-input mt-1 block text-sm w-[65%] border p-1" id="name" name="name" readonly required>
                     </div>
                     <div class="mb-4 flex items-center justify-between gap-6">
+                        <label for="name" class="block text-md font-semibold text-black ">TICKET Code:</label>
+                        <input type="text" class="form-input mt-1 block text-sm w-[65%] border p-1" id="ticket_code" name="ticket_code" readonly required>
+                    </div>
+                    <div class="mb-4 flex items-center justify-between gap-6">
                         <label for="sector" class="block text-md font-semibold text-black ">Sector</label>
                         <input type="tel" readonly class="form-input mt-1 block text-sm w-[65%] border p-1" id="sector" name="sector" required>
                     </div>
@@ -146,6 +150,7 @@
                             // Ticket found
                             $('#name').val(response.ticket.passenger);
                             $('#flight').val(response.ticket.flight_no);
+                            $('#ticket_code').val(response.ticket.ticket_code);
                             $('#flight_date').val(response.ticket.flight_date);
                             $('#sector').val(response.ticket.sector);
                             $('#agent').val(response.agent);
