@@ -155,6 +155,16 @@ Route::get('/sector_city/view', function () {
 })->name('sector_city.view');
 Route::post('/sector_city_report', [ReportController::class, 'sector_city_report'])->name('sector_city_report');
 
+Route::get('/profit_loss/view', function () {
+    return app(ReportController::class)->profit_loss_view();
+})->name('profit_loss.view');
+Route::post('/profit_loss_report', [ReportController::class, 'profit_loss_report'])->name('profit_loss_report');
+
+Route::get('/cash_book/view', function () {
+    return app(ReportController::class)->cash_book_view();
+})->name('cash_book.view');
+Route::post('/cash_book_report', [ReportController::class, 'cash_book_report'])->name('cash_book_report');
+
 Route::get('/adm/view', function () {
     return app(ADMController::class)->view();
 })->name('adm.view');

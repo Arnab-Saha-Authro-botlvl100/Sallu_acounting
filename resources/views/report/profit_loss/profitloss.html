@@ -1,0 +1,206 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            clifford: '#da373d',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+   
+  </style>
+</head>
+
+<body class="flex">
+  
+  <main class=" mx-auto w-[65%] bg-white shadow-lg py-6">
+   
+    <div class=" px-7 py-3 flex flex-col gap-y-2 shadow-2xl">
+        <h2 class="text-center font-medium text-2xl ">Company Name : SALLU AIR SERVICE</h2>
+        <p class="text-center text-lg">Company Address : 291, Inner Circular Road, Fakirapool, Jomider palace Dhaka, 1000, Bangladesh</p>
+        <p class="text-center font-semibold text-xl underline">Report: Profit/Loss A/c</p>
+        <p class="text-center font-semibold text-xl">Form Date : 01/02/2024   To Date : 12/02/2024</p>
+        
+    </div>
+    <div class="flex mb-10">
+    <table class="table-auto w-full ">
+        <thead>
+          <tr class="bg-[#0E7490] text-white flex justify-between">
+            <th class="px-4 py-2 text-left">Particular</th>
+            <th class="px-4 py-2 text-left">Amount</th>
+           
+          </tr>
+        </thead>
+        <tbody id="data" class="text-lg px-2 border ">
+          <tr class="flex justify-between px-2 border-y">
+            <td class="px-2 py-2 font-semibold">Purchage Accounts</td>
+            <td class="px-2 py-2 font-semibold">399,988</td>
+            
+          </tr>
+          <tr class="flex justify-between px-2 pl-8">
+            <td class="px-2  w-[30%]">Tickets</td>
+            <td class="px-2 ">399,988</td>
+            <td class="px-2 "></td>
+            
+          </tr>
+          <tr class="flex justify-between px-2 pl-8">
+            <td class="px-2  w-[30%]">Umra</td>
+            <td class="px-2 ">399,988</td>
+            <td class="px-2 "></td>
+            
+          </tr>
+          <tr class="flex justify-between px-2 pl-8">
+            <td class="px-2  w-[30%]">Manpower</td>
+            <td class="px-2 ">399,988</td>
+            <td class="px-2 "></td>
+            
+          </tr>
+          <tr class="flex justify-between px-2 pl-8">
+            <td class="px-2  w-[30%]">Visa</td>
+            <td class="px-2 ">399,988</td>
+            <td class="px-2 "></td>
+            
+          </tr>
+          <tr class="flex justify-between px-2 py-1">
+            <td class="px-2 py-2 w-[30%]">Gross Profit c/o</td>
+            <td class="px-2 py-2"></td>
+            <td class="px-2 py-2 font-semibold">399,988</td>
+            
+          </tr>
+          <tr class="flex justify-between px-2 py-1">
+            <td class="px-2 py-2 w-[30%]"></td>
+            <td class="px-2 py-2"></td>
+            <td class="px-2  font-semibold border-y border-black">399,988</td>
+            
+          </tr>
+          <tr class="flex justify-between px-2 py-1">
+                
+            <td class="px-2 w-[30%] font-semibold">Inderct Expenses</td>
+            <td class="px-2"></td>
+            <td class="px-2 font-semibold">399,988</td>
+            
+          </tr>
+          <tr class="flex justify-between px-2 py-1">
+            
+            <td class="px-2 w-[30%]">Donations & Gifts</td>
+            
+            <td class="px-2 font-semibold">399</td>
+            <td class="px-2"></td>
+            
+          </tr>
+          <tr class="flex justify-between px-2 py-1">
+            
+            <td class="px-2 w-[30%]">Office Equipments</td>
+            
+            <td class="px-2 font-semibold">399,988</td>
+            <td class="px-2"></td>
+            
+          </tr>
+          <tr class="flex justify-between px-2 py-1">
+            
+            <td class="px-2 w-[30%]">Mobile Charge</td>
+            
+            <td class="px-2 font-semibold">399,988</td>
+            <td class="px-2"></td>
+            
+          </tr>
+          <tr class="flex justify-between px-2 py-1">
+                
+            <td class="px-2 py-2 w-[30%]">Net Profit</td>
+            <td class="px-2 py-2"></td>
+            <td class="px-2 py-2 font-semibold">399,988</td>
+            
+          </tr>
+          
+          
+          </tbody>
+      </table>
+    <table class="table-auto w-full">
+        <thead>
+            <tr class="bg-[#0E7490] text-white flex justify-between">
+              <th class="px-4 py-2 text-left">Particular</th>
+              <th class="px-4 py-2 text-left">Amount</th>
+             
+            </tr>
+          </thead>
+          <tbody id="data" class="text-lg px-2 border ">
+            <tr class="flex justify-between px-2 border-y">
+              <td class="px-2 font-semibold">Sales Accounts</td>
+              <td class="px-5 font-semibold">599,988</td>
+              
+            </tr>
+            <tr class="flex justify-between px-2 pl-8">
+              <td class="px-2 w-[30%]">Tickets</td>
+              <td class="px-2">399,988</td>
+              <td class="px-2"></td>
+              
+            </tr>
+            <tr class="flex justify-between px-2 pl-8">
+              <td class="px-2 w-[30%]">Umra</td>
+              <td class="px-2">399,988</td>
+              <td class="px-2"></td>
+              
+            </tr>
+            <tr class="flex justify-between px-2 pl-8">
+              <td class="px-2 w-[30%]">Manpower</td>
+              <td class="px-2">399,988</td>
+              <td class="px-2"></td>
+              
+            </tr>
+            <tr class="flex justify-between px-2 pl-8">
+              <td class="px-2 w-[30%]">Visa</td>
+              <td class="px-2">399,988</td>
+              <td class="px-2"></td>
+              
+            </tr>
+            <tr class="flex justify-between px-2 py-1">
+                <td class="px-2 py-2 w-[30%]"></td>
+                <td class="px-2 py-2"></td>
+                <td class="px-2  font-semibold border-y border-black">399,988</td>
+                
+                
+              </tr>
+              <tr class="flex justify-between px-2 py-1 mb-auto">
+                
+                <td class="px-2 py-2 w-[30%]">Gross Profit c/o</td>
+                <td class="px-2 py-2"></td>
+                <td class="px-2 py-2 font-semibold">399,988</td>
+                
+              </tr>
+              <tr class="flex justify-between px-2 py-1">
+                
+                <td class="px-2 py-2 w-[30%]">Net Loss</td>
+                <td class="px-2 py-2"></td>
+                <td class="px-2 py-2 font-semibold">399,988</td>
+                
+              </tr>
+              
+            
+            
+            </tbody>
+      </table>
+    </div>
+    <div class="w-[50%] flex justify-end">
+    <p class="font-bold text-xl">Gross Profit : 119,389.00</p>
+    <p class="font-medium text-lg"></p>
+    </div>
+  </main>
+  <script type="text/javascript">
+    
+    
+  </script>
+  <script src="https://unpkg.com/flowbite@1.4.0/dist/flowbite.js"></script>
+</body>
+
+</html>

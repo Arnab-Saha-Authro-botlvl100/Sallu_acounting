@@ -60,6 +60,7 @@ class RefundController extends Controller
 
             $refund->current_agent_amount = $current_agent_amount;
             $refund->current_supplier_amount = $current_supplier_amount;
+            $refund->user = Auth::id();
             $flag = $ticket->save() && $refund->save() && $supplier->save() && $agent->save();
         
             if ($flag) {

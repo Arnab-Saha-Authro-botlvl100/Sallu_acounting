@@ -1,0 +1,123 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            clifford: "#da373d",
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+   
+  </style>
+</head>
+
+<body class="flex ">
+  
+  <main class="mx-auto w-[65%] ">
+   
+    <div class=" px-7 py-3 shadow-2xl">
+        <h2 class="text-center text-3xl my-2">SALLU AIR SERVICE</h2>
+        <h2 class="text-center font-bold text-xl my-2 underline">Cash Book Report</h2>
+        <div class="flex items-center w-[35%] mx-auto justify-between mb-2">
+            <div class="text-md">
+                <!-- <h2 class="font-semibold">Company Name : Sallu Air Service</h2>
+                <p><span class="font-semibold">Period Date :</span> 14-09-2023 to 15-09-2023 </p> -->
+                <p>From Date : <span class="font-semibold">14/09/2024</span></p>
+            </div>
+            <div class="text-md">
+                <p>To Date : <span class="font-semibold">14/09/2024</span></p>
+                
+            </div>
+        </div>
+    </div>
+    <table class="table-auto w-full shadow-2xl">
+        <thead>
+          <tr class="bg-[#0E7490] text-white">
+            <th class="px-4 py-2 text-left">SL</th>
+            <th class="px-4 py-2 text-left">Date</th>
+            <th class="px-4 py-2 text-left">Account Name</th>
+            <th class="px-4 py-2 text-left">Narration</th>
+            <th class="px-4 py-2 text-left">Receipt</th>
+            <th class="px-4 py-2 text-left">Payment</th>
+            <th class="px-4 py-2 text-left">Balance</th>
+          </tr>
+        </thead>
+        <tbody id="data">
+          <tr>
+            <td class="px-2 py-1">01</td>
+            <td class="px-2 py-1">12/02/2024</td>
+            <td class="px-2 py-1">Munna Hossen</td>
+            <td class="px-2 py-1">Cash receipt to sallu air service</td>
+            <td class="px-2 py-1">90000</td>
+            <td class="px-2 py-1">27000</td>
+            <td class="px-2 py-1">27000</td>
+            
+          </tr>
+          <tr>
+            <td class="px-2 py-1">02</td>
+            <td class="px-2 py-1">12/02/2024</td>
+            <td class="px-2 py-1">Munna Hossen</td>
+            <td class="px-2 py-1">Cash receipt to sallu air service</td>
+            <td class="px-2 py-1">90000</td>
+            <td class="px-2 py-1">27000</td>
+            <td class="px-2 py-1">27000</td>
+            
+          </tr>
+          <tr>
+            <td class="px-2 py-1">03</td>
+            <td class="px-2 py-1">12/02/2024</td>
+            <td class="px-2 py-1">Munna Hossen</td>
+            <td class="px-2 py-1">Cash receipt to sallu air service</td>
+            <td class="px-2 py-1">90000</td>
+            <td class="px-2 py-1">27000</td>
+            <td class="px-2 py-1">27000</td>
+            
+          </tr>
+          <tr class="!bg-white font-bold border-y border-black">
+            <td class="px-2 py-1"></td>
+            <td class="px-2 py-1"></td>
+            <td class="px-2 py-1"></td>
+            <td class="px-2 py-1">Total </td>
+            <td class="px-2 py-1">90000</td>
+            <td class="px-2 py-1">27000</td>
+            <td class="px-2 py-1">27000</td>
+            
+          </tr>
+          <tr class="!bg-white font-bold">
+            <td class="px-2 py-1"></td>
+            <td class="px-2 py-1"></td>
+            <td class="px-2 py-1"></td>
+            <td class="px-2 py-1">Closing Balance</td>
+            <td class="px-2 py-1"></td>
+            <td class="px-2 py-1"></td>
+            <td class="px-2 py-1">27000</td>
+            
+          </tr>
+          
+         
+          
+          </tbody>
+      </table>
+  </main>
+  <script type="text/javascript">
+    
+    const rows = document.querySelectorAll('#data tr');
+    for (let i = 0; i < rows.length; i += 2) {
+      rows[i].classList.add('bg-gray-200');
+    }
+  </script>
+  <script src="https://unpkg.com/flowbite@1.4.0/dist/flowbite.js"></script>
+</body>
+
+</html>

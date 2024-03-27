@@ -6,6 +6,10 @@ use Illuminate\Http\Request;
 use Illuminate\View\View;
 use App\Models\Supplier;
 use App\Models\Agent;
+use App\Models\VoidTicket;
+use App\Models\ReissueTicket;
+use App\Models\Refund;
+
 use App\Models\AIT;
 use App\Models\Type;
 use App\Models\Order;
@@ -249,6 +253,8 @@ class ReportController extends Controller
             $id = $request->agent_supplier_id;
 
             $receive = Ticket::where('agent', $id);
+            $receive = $receive->where('user', Auth::id());
+            $refund = Refund::where('user', Auth::id());
 
             if (!is_null($start_date) || !is_null($end_date)) {
                 $start_date = (new DateTime($start_date))->format('Y-m-d');
@@ -269,8 +275,22 @@ class ReportController extends Controller
 
             $receiver = Receiver::where([
                 ['receive_from', '=', 'agent'],
-                ['agent_supplier_id', '=', $id]
+                ['agent_supplier_id', '=', $id],
+                ['user', Auth::id()]
             ]);
+
+            $refund = $refund->where([
+                ['agent', $id],
+            ]);
+
+            $paymenter = Payment::where([
+                ['receive_from', '=', 'agent'],
+                ['agent_supplier_id', '=', $id],
+                ['user', Auth::id()]
+            ]);
+
+            $void_ticket = VoidTicket::where([ ['user', Auth::id()], ['agent', $id]]);
+            $reissue = ReissueTicket::where([['agent', $id],['user', Auth::id()]]);
 
             if (!is_null($start_date) || !is_null($end_date)) {
                 $start_date = (new DateTime($start_date))->format('Y-m-d');
@@ -285,13 +305,54 @@ class ReportController extends Controller
                         $query->where('date', '<=', $end_date);
                     }
                 });
+                $refund->where(function ($query) use ($start_date, $end_date) {
+                    if (!is_null($start_date)) {
+                        $query->where('date', '>=', $start_date);
+                    }
+
+                    if (!is_null($end_date)) {
+                        $query->where('date', '<=', $end_date);
+                    }
+                });
+                $paymenter->where(function ($query) use ($start_date, $end_date) {
+                    if (!is_null($start_date)) {
+                        $query->where('date', '>=', $start_date);
+                    }
+
+                    if (!is_null($end_date)) {
+                        $query->where('date', '<=', $end_date);
+                    }
+                });
+                $void_ticket->where(function ($query) use ($start_date, $end_date) {
+                    if (!is_null($start_date)) {
+                        $query->where('date', '>=', $start_date);
+                    }
+
+                    if (!is_null($end_date)) {
+                        $query->where('date', '<=', $end_date);
+                    }
+                });
+                $reissue->where(function ($query) use ($start_date, $end_date) {
+                    if (!is_null($start_date)) {
+                        $query->where('date', '>=', $start_date);
+                    }
+
+                    if (!is_null($end_date)) {
+                        $query->where('date', '<=', $end_date);
+                    }
+                });
             }
 
             $receiver = $receiver->get();
+            $paymenter = $paymenter->get();
+            $void_ticket = $void_ticket->get();
+            $reissue = $reissue->get();
+            $refund = $refund->get();
 
-            $mergedCollection = $receive->merge($receiver);
+            $mergedCollection = $receive->concat($receiver)->concat($paymenter)->concat($void_ticket)->concat($reissue)->concat($refund);
             $sortedCollection = $mergedCollection->sortBy('created_at');
-
+            // dd($mergedCollection);
+            $acountname = Agent::where('id', $id)->value('name');
             $html = '
                         
                             
@@ -306,8 +367,8 @@ class ReportController extends Controller
                                     <h2 class="text-center font-semibold text-2xl my-2">General Ledger</h2>
                                     <div class="flex items-center justify-between mb-2">
                                         <div class="text-lg">
-                                            <h2 class="font-semibold">Account Name : Jane Alam</h2>
-                                            <p><span class="font-semibold">Period Date :</span> 14-09-2023 to 15-09-2023 </p>
+                                            <h2 class="font-semibold">Account Name : '. $acountname. '</h2>
+                                            <p><span class="font-semibold">Period Date :</span> '. $start_date.' to '. $end_date . '</p>
                                         </div>
                                         <div class="flex items-center">
                                         
@@ -349,13 +410,14 @@ class ReportController extends Controller
                                                         $item->airline_code -  $item->airline_name <br>
                                                         Remarks:  $item->remark 
                                                     </td>
-                                                    <td class="w-[12%] "> $item->agent_price </td>
-                                                    <td class="w-[12%] "></td>
+                                                    <td class="w-[12%] totaldebit"> $item->agent_price </td>
+                                                    <td class="w-[12%] totalcredit"></td>
                                                     <!-- <td class="w-[12%] text-center"> $item->previous_amount  Dr</td> -->
-                                                    <td class="w-[12%] "> $item->agent_new_amount  Dr</td>
+                                                    <td class="w-[12%] totaltotal"> $item->agent_new_amount  Dr</td>
                                                 </tr>
                                             HTML;
-                } elseif ($item->getTable() == "receive") {
+                }
+                elseif ($item->getTable() == "receive") {
                     $currentAmount = $item->current_amount >= 0 ? $item->current_amount . ' DR' : $item->current_amount . ' CR';
 
                     $html .= <<<HTML
@@ -366,9 +428,90 @@ class ReportController extends Controller
                                                 <td class="w-[28%]">
                                                     Remarks:  {$item->remark} 
                                                 </td>
-                                                <td class="w-[12%]  "></td>
-                                                <td class="w-[12%]">{$item->amount}</td>
-                                                <td class="w-[12%] ">{$currentAmount}</td>
+                                                <td class="w-[12%] totaldebit"></td>
+                                                <td class="w-[12%] totalcredit">{$item->amount}</td>
+                                                <td class="w-[12%] totaltotal">{$currentAmount}</td>
+                                            </tr>
+                                            HTML;
+                }
+                
+                elseif ($item->getTable() == "payment") {
+                    $currentAmount = $item->current_amount >= 0 ? $item->current_amount . ' DR' : $item->current_amount . ' CR';
+
+                    $html .= <<<HTML
+                                            <tr>
+                                                <td class="w-[10%]"> {$item->date} </td>
+                                                <td class="w-[11%]"> {$item->invoice} </td>
+                                                <td class="w-[15%]"> {$item->ticket_no} </td>
+                                                <td class="w-[28%]">
+                                                    Remarks:  {$item->remark} 
+                                                </td>
+                                                <td class="w-[12%] totaldebit">{$item->amount}</td>
+                                                <td class="w-[12%] totalcredit"></td>
+                                                <td class="w-[12%] totaltotal">{$currentAmount}</td>
+                                            </tr>
+                                            HTML;
+                }
+
+                elseif ($item->getTable() == "reissue") {
+                    $currentAmount = $item->now_agent_amount;
+                    $currentAmount = $currentAmount >= 0 ? $currentAmount . ' DR' : $currentAmount . ' CR';
+
+                    $html .= <<<HTML
+                                            <tr style="color: orange">
+                                                <td class="w-[10%]"> {$item->date} </td>
+                                                <td class="w-[11%]"> {$item->invoice} </td>
+                                                <td class="w-[15%]"> {$item->ticket_no} </td>
+                                                <td class="w-[28%]">
+                                                    Remarks:  {$item->remark} 
+                                                </td>
+                                                <td class="w-[12%] totaldebit">{$item->now_agent_fere}</td>
+                                                <td class="w-[12%] totalcredit"></td>
+                                                <td class="w-[12%] totaltotal">{$currentAmount}</td>
+                                            </tr>
+                                            HTML;
+                }
+
+                elseif ($item->getTable() == "refund") {
+                    $currentAmount = $item->current_agent_amount;
+                    $currentAmount = $currentAmount >= 0 ? $currentAmount . ' DR' : $currentAmount . ' CR';
+                    $agentname = Agent::where('id', $id)->value('name');
+                    $ticket = Ticket::where([['user', Auth::id()],['ticket_no', $item->ticket_no]])->first();
+                    $html .= <<<HTML
+                                            <tr >
+                                                <td class="w-[10%]"> {$item->date} </td>
+                                                <td class="w-[11%]"> {$item->invoice} </td>
+                                                <td class="w-[15%]"> {$item->ticket_no} </td>
+                                                <td class="w-[28%]">
+                                                    <!-- Remarks:  Refund
+                                                    Agent New Amount: {$item->now_agent_fere}
+                                                    Agent Previous Amount: {$item->prev_agent_amount} -->
+                                                    Refund to Customer : $agentname ,  
+                                                    {$item->invoice}<br> Ticket No : {$ticket->ticket_code}/{$item->ticket_no}, <br>
+                                                    Sector :{$ticket->sector} ,<br> on {$item->date} <b> PAX Name : {$ticket->passenger}</b>
+                                                </td>
+                                                <td class="w-[12%] totaldebit"></td>
+                                                <td class="w-[12%] totalcredit">{$item->now_agent_fere}</td>
+                                                <td class="w-[12%] totaltotal">{$currentAmount}</td>
+                                            </tr>
+                                            HTML;
+                }
+
+                elseif ($item->getTable() == "voidTicket") {
+                    $currentAmount = $item->now_agent_amount;
+                    $currentAmount = $currentAmount >= 0 ? $currentAmount . ' DR' : $currentAmount . ' CR';
+
+                    $html .= <<<HTML
+                                            <tr style="color: blue">
+                                                <td class="w-[10%]"> {$item->date} </td>
+                                                <td class="w-[11%]"> {$item->invoice} </td>
+                                                <td class="w-[15%]"> {$item->ticket_code}-{$item->ticket_no} </td>
+                                                <td class="w-[28%]">
+                                                    Remarks:  {$item->remark} 
+                                                </td>
+                                                <td class="w-[12%] totaldebit">{$item->now_agent_fere}</td>
+                                                <td class="w-[12%] totalcredit"></td>
+                                                <td class="w-[12%] totaltotal">{$currentAmount}</td>
                                             </tr>
                                             HTML;
                 }
@@ -379,7 +522,15 @@ class ReportController extends Controller
             }
 
             $html .= '
-                                        
+                                        <tr class="py-2 text-xl">
+                                            <td></td>
+                                            <td></td>
+                                            <td></td>
+                                            <td class="text-lg font-semibold">Total Closing Balance</td>
+                                            <td class="w-[12%]" id="sumtotaldebit"></td>
+                                            <td class="w-[12%]  font-bold" id="sumtotalcredit"></td>
+                                            <td class="w-[12%]  font-bold" id="sumtotal">r</td>
+                                        </tr>
                                         </tbody>
                                     </table>
                             </div>
@@ -409,9 +560,39 @@ class ReportController extends Controller
                                     }
                                 }
                             </style>
+                                                    
+                            <script>
+                            // Get all elements with the specified classes
+                            const totaldebitElements = document.querySelectorAll(".totaldebit");
+                            const totalcreditElements = document.querySelectorAll(".totalcredit");
+                            const totaltotalElements = document.querySelectorAll(".totaltotal");
+
+                            // Initialize variables to hold the sum of each class
+                            let sumTotalDebit = 0;
+                            let sumTotalCredit = 0;
+                            let sumTotal = 0;
+
+                            // Iterate over each element and sum their values
+                            totaldebitElements.forEach(function(element) {
+                                sumTotalDebit += parseFloat(element.textContent.trim()) || 0; // Convert text content to number
+                            });
+                            totalcreditElements.forEach(function(element) {
+                                sumTotalCredit += parseFloat(element.textContent.trim()) || 0; // Convert text content to number
+                            });
+                            totaltotalElements.forEach(function(element) {
+                                sumTotal += parseFloat(element.textContent.trim()) || 0; // Convert text content to number
+                            });
+
+                            // Set the sum values to the respective elements
+                            document.getElementById("sumtotaldebit").textContent = sumTotalDebit.toFixed(2); // Format to 2 decimal places
+                            document.getElementById("sumtotalcredit").textContent = sumTotalCredit.toFixed(2); // Format to 2 decimal places
+                            document.getElementById("sumtotal").textContent = (sumTotalDebit - sumTotalCredit).toFixed(2) + " Dr"; // Format to 2 decimal places and append "Dr"
+                            </script>
+
                       
                     ';
-        } elseif ($who == 'supplier') {
+        } 
+        elseif ($who == 'supplier') {
             // dd($who);
             $start_date = $request->start_date;
             $end_date = $request->end_date;
@@ -419,7 +600,23 @@ class ReportController extends Controller
 
             $receive = Ticket::where('supplier', $id);
             // dd($receive);
+            
+            $receiver = Receiver::where([
+                ['receive_from', '=', 'supplier'],
+                ['agent_supplier_id', '=', $id],
+                ['user', Auth::id()]
+            ]);
 
+            $paymenter = Payment::where([
+                ['receive_from', '=', 'supplier'],
+                ['agent_supplier_id', '=', $id],
+                ['user', Auth::id()]
+            ]);
+            $void_ticket = VoidTicket::where([ ['user', Auth::id()], ['supplier', $id]]);
+            $reissue = ReissueTicket::where([['supplier', $id],['user', Auth::id()]]);
+            // dd($receive);
+          
+            
             if (!is_null($start_date) || !is_null($end_date)) {
                 $start_date = (new DateTime($start_date))->format('Y-m-d');
                 $end_date = (new DateTime($end_date))->format('Y-m-d');
@@ -434,15 +631,7 @@ class ReportController extends Controller
                     }
                 });
             }
-
-            $receive = $receive->get();
-            // dd($receive);
-
-            $receiver = Payment::where([
-                ['receive_from', '=', 'supplier'],
-                ['agent_supplier_id', '=', $id]
-            ]);
-
+            
             if (!is_null($start_date) || !is_null($end_date)) {
                 $start_date = (new DateTime($start_date))->format('Y-m-d');
                 $end_date = (new DateTime($end_date))->format('Y-m-d');
@@ -456,15 +645,47 @@ class ReportController extends Controller
                         $query->where('date', '<=', $end_date);
                     }
                 });
+                $paymenter->where(function ($query) use ($start_date, $end_date) {
+                    if (!is_null($start_date)) {
+                        $query->where('date', '>=', $start_date);
+                    }
+
+                    if (!is_null($end_date)) {
+                        $query->where('date', '<=', $end_date);
+                    }
+                });
+                $void_ticket->where(function ($query) use ($start_date, $end_date) {
+                    if (!is_null($start_date)) {
+                        $query->where('date', '>=', $start_date);
+                    }
+
+                    if (!is_null($end_date)) {
+                        $query->where('date', '<=', $end_date);
+                    }
+                });
+                $reissue->where(function ($query) use ($start_date, $end_date) {
+                    if (!is_null($start_date)) {
+                        $query->where('date', '>=', $start_date);
+                    }
+
+                    if (!is_null($end_date)) {
+                        $query->where('date', '<=', $end_date);
+                    }
+                });
             }
 
+            $receive = $receive->get();
             $receiver = $receiver->get();
+            $paymenter = $paymenter->get();
+            $void_ticket = $void_ticket->get();
+            $reissue = $reissue->get();
 
-            // dd($receiver);
-            $mergedCollection = $receive->merge($receiver);
+            $mergedCollection = $receive->concat($receiver)->concat($paymenter)->concat($void_ticket)->concat($reissue);
             $sortedCollection = $mergedCollection->sortBy('created_at');
-            // dd($sortedCollection);
+            // dd($mergedCollection);
 
+            $acountname = Supplier::where('id', $id)->value('name');
+            // dd($acountname, $id);
             $html = ' 
                             
                         <main class="flex-1 mx-auto max-w-7xl px-10">
@@ -478,9 +699,9 @@ class ReportController extends Controller
                                     <h2 class="text-center font-semibold text-2xl my-2">General Ledger</h2>
                                     <div class="flex items-center justify-between mb-2">
                                         <div class="text-lg">
-                                            <h2 class="font-semibold">Account Name : Jane Alam</h2>
-                                            <p><span class="font-semibold">Period Date :</span> 14-09-2023 to 15-09-2023 </p>
-                                        </div>
+                                        <h2 class="font-semibold">Account Name : '. $acountname. '</h2>
+                                        <p><span class="font-semibold">Period Date :</span> '. $start_date.' to '. $end_date . '</p>
+                                    </div>
                                         <div class="flex items-center">
                                         
                                             <div class="mb-8">
@@ -514,42 +735,93 @@ class ReportController extends Controller
                                                     <td class="w-[10%]"> $item->invoice_date </td>
                                                     <td class="w-[11%]"> $item->invoice </td>
                                                     <td class="w-[15%]"> $item->ticket_no </td>
-                                                    <td class="w-[28%] pr-2">
+                                                    <td class="w-[28%] pr-3">
                                                         PAX NAME: <span class="font-semibold"> $item->passenger </span><br>
                                                         PNR:  $item->ticket_code ,  $item->sector <br>
                                                         FLIGHT DATE:  $item->flight_date <br>
                                                         $item->airline_code -  $item->airline_name <br>
                                                         Remarks:  $item->remark 
                                                     </td>
-                                                    
-                                                    <td class="w-[12%] "></td>
-                                                    <td class="w-[12%]  "> $item->supplier_price </td>
-                                                    <!-- <td class="w-[12%] "> $item->previous_amount  Dr</td> -->
-                                                    <td class="w-[12%] "> $item->supplier_new_amount  Dr</td>
+                                                    <td class="w-[12%] totaldebit"> </td>
+                                                    <td class="w-[12%] totalcredit">$item->supplier_price </td>
+                                                    <!-- <td class="w-[12%] text-center"> $item->previous_amount  Dr</td> -->
+                                                    <td class="w-[12%] totaltotal"> $item->supplier_new_amount  Cr</td>
                                                 </tr>
                                             HTML;
-                } elseif ($item->getTable() == "payment") {
+                }
+                elseif ($item->getTable() == "receive") {
                     $currentAmount = $item->current_amount >= 0 ? $item->current_amount . ' DR' : $item->current_amount . ' CR';
 
                     $html .= <<<HTML
-                                            <tr style="">
+                                            <tr style="font-weight: bold;  color: green">
                                                 <td class="w-[10%]"> {$item->date} </td>
                                                 <td class="w-[11%]"> {$item->invoice} </td>
                                                 <td class="w-[15%]"> {$item->ticket_no} </td>
                                                 <td class="w-[28%]">
-                                                    Remarks:  {$item->remark}<br> 
-                                                    Method:   {$item->method}
+                                                    Remarks:  {$item->remark} 
                                                 </td>
-                                                <td class="w-[12%]">{$item->amount}</td>
-                                                <td class="w-[12%]"></td>
-                                                <td class="w-[12%]">{$currentAmount}</td>
+                                                <td class="w-[12%] totaldebit"></td>
+                                                <td class="w-[12%] totalcredit">{$item->amount}</td>
+                                                <td class="w-[12%] totaltotal">{$currentAmount}</td>
+                                            </tr>
+                                            HTML;
+                }
+                
+                elseif ($item->getTable() == "payment") {
+                    $currentAmount = $item->current_amount >= 0 ? $item->current_amount . ' DR' : $item->current_amount . ' CR';
+
+                    $html .= <<<HTML
+                                            <tr style="font-weight: bold;  color: red">
+                                                <td class="w-[10%]"> {$item->date} </td>
+                                                <td class="w-[11%]"> {$item->invoice} </td>
+                                                <td class="w-[15%]"> {$item->ticket_no} </td>
+                                                <td class="w-[28%]">
+                                                    Remarks:  {$item->remark} 
+                                                </td>
+                                                <td class="w-[12%] totaldebit">{$item->amount}</td>
+                                                <td class="w-[12%] totalcredit"></td>
+                                                <td class="w-[12%] totaltotal">{$currentAmount}</td>
                                             </tr>
                                             HTML;
                 }
 
-                // if($index%2 == 0){
+                elseif ($item->getTable() == "reissue") {
+                    $currentAmount = $item->now_supplier_amount;
+                    $currentAmount = $currentAmount >= 0 ? $currentAmount . ' DR' : $currentAmount . ' CR';
 
-                // }
+                    $html .= <<<HTML
+                                            <tr style="color: orange">
+                                                <td class="w-[10%]"> {$item->date} </td>
+                                                <td class="w-[11%]"> {$item->invoice} </td>
+                                                <td class="w-[15%]"> {$item->ticket_no} </td>
+                                                <td class="w-[28%]">
+                                                    Remarks:  {$item->remark} 
+                                                </td>
+                                                <td class="w-[12%] totaldebit"></td>
+                                                <td class="w-[12%] totalcredit">{$item->now_supplier_fare}</td>
+                                                <td class="w-[12%] totaltotal">{$currentAmount}</td>
+                                            </tr>
+                                            HTML;
+                }
+
+                elseif ($item->getTable() == "voidTicket") {
+                    $currentAmount = $item->now_supplier_amount;
+                    $currentAmount = $currentAmount >= 0 ? $currentAmount . ' DR' : $currentAmount . ' CR';
+
+                    $html .= <<<HTML
+                                            <tr style="color: blue">
+                                                <td class="w-[10%]"> {$item->date} </td>
+                                                <td class="w-[11%]"> {$item->invoice} </td>
+                                                <td class="w-[15%]"> {$item->ticket_code}-{$item->ticket_no} </td>
+                                                <td class="w-[28%]">
+                                                    Remarks:  {$item->remark} 
+                                                </td>
+                                                <td class="w-[12%] totaldebit"></td>
+                                                <td class="w-[12%] totalcredit">{$item->now_supplier_fare}</td>
+                                                <td class="w-[12%] totaltotal">{$currentAmount}</td>
+                                            </tr>
+                                            HTML;
+                }
             }
 
             $html .= ' 
@@ -558,9 +830,9 @@ class ReportController extends Controller
                                             <td></td>
                                             <td></td>
                                             <td class="text-lg font-semibold">Total Closing Balance</td>
-                                            <td class="w-[12%]  font-bold">409393</td>
-                                            <td class="w-[12%]  font-bold">70000</td>
-                                            <td class="w-[12%]  font-bold">5000.00 Dr</td>
+                                            <td class="w-[12%]" id="sumtotaldebit2"></td>
+                                            <td class="w-[12%]  font-bold" id="sumtotalcredit2"></td>
+                                            <td class="w-[12%]  font-bold" id="sumtotal2"></td>
                                         </tr>
                                         </tbody>
                                     </table>
@@ -589,7 +861,34 @@ class ReportController extends Controller
                             }
                         }
                     </style>
-                            
+                    
+                    <script>
+                    // Get all elements with the specified classes
+                    const totaldebitElements2 = document.querySelectorAll(".totaldebit");
+                    const totalcreditElements2 = document.querySelectorAll(".totalcredit");
+                    const totaltotalElements2 = document.querySelectorAll(".totaltotal");
+
+                    // Initialize variables to hold the sum of each class
+                    let sumTotalDebit = 0;
+                    let sumTotalCredit = 0;
+                    let sumTotal = 0;
+
+                    // Iterate over each element and sum their values
+                    totaldebitElements2.forEach(function(element) {
+                        sumTotalDebit += parseFloat(element.textContent.trim()) || 0; // Convert text content to number
+                    });
+                    totalcreditElements2.forEach(function(element) {
+                        sumTotalCredit += parseFloat(element.textContent.trim()) || 0; // Convert text content to number
+                    });
+                    totaltotalElements2.forEach(function(element) {
+                        sumTotal += parseFloat(element.textContent.trim()) || 0; // Convert text content to number
+                    });
+
+                    // Set the sum values to the respective elements
+                    document.getElementById("sumtotaldebit2").textContent = sumTotalDebit.toFixed(2); // Format to 2 decimal places
+                    document.getElementById("sumtotalcredit2").textContent = sumTotalCredit.toFixed(2); // Format to 2 decimal places
+                    document.getElementById("sumtotal2").textContent = (sumTotalDebit - sumTotalCredit).toFixed(2) + " Dr"; // Format to 2 decimal places and append "Dr"
+                    </script>
     
                         
                     ';
@@ -1604,6 +1903,14 @@ class ReportController extends Controller
         // dd($cities, $cities2);
         return view('report.sector_city.index', compact('cities', 'cities2'));
     }
+    
+    public function profit_loss_view(){
+        return view('report.profit_loss.index');
+    }
+
+    public function cash_book_view(){
+        return view('report.cash_book.index');
+    }
 
     public function segment_report(Request $request){
 
@@ -1844,6 +2151,504 @@ class ReportController extends Controller
            
           
       
+        return $htmlTable;
+    }
+
+    public function profit_loss_report(Request $request){
+
+     
+        $start_date = $request->input('start_date') ?? null;
+        $end_date = $request->input('end_date') ?? null;
+     
+        if ($start_date) {
+            $start_date = (new DateTime($start_date))->format('Y-m-d');
+        }
+        
+        if ($end_date) {
+            $end_date = (new DateTime($end_date))->format('Y-m-d');
+        }
+        
+        $user = Auth::id();
+        
+        $query = DB::table('tickets')
+            ->where([
+                ['is_active', 1],
+                ['is_delete', 0],
+                
+                ['user', $user],
+            ]);
+
+            if ($start_date !== null && $end_date !== null) {
+                $query->whereBetween('invoice_date', [$start_date, $end_date]);
+            }
+        $tickets = $query->sum('profit');
+        $ticket_purchase = $query->sum('supplier_price');
+        $ticket_sell = $query->sum('agent_price');
+
+        $query2 = DB::table('tickets')
+            ->where([
+                ['is_active', 1],
+                ['is_delete', 0],
+                ['is_refund', 1],
+                ['user', $user],
+            ]);
+
+            if ($start_date !== null && $end_date !== null) {
+                $query2->whereBetween('invoice_date', [$start_date, $end_date]);
+            }
+        $refundticket = $query2->sum('refund_profit');
+        $refund_purchase = $query2->sum('supplier_price');
+        $refund_sell = $query2->sum('agent_price');
+
+        $query3 = DB::table('tickets')
+            ->where([
+                ['is_active', 1],
+                ['is_delete', 0],
+                ['is_void', 1],
+                ['user', $user],
+            ]);
+
+            if ($start_date !== null && $end_date !== null) {
+                $query3->whereBetween('invoice_date', [$start_date, $end_date]);
+            }
+        $voidticket = $query3->sum('void_profit');
+        $voidticket_purchase = $query3->sum('supplier_price');
+        $voidticket_sell = $query3->sum('agent_price');
+
+        $query4 = DB::table('tickets')
+            ->where([
+                ['is_active', 1],
+                ['is_delete', 0],
+                ['is_reissue', 1],
+                ['user', $user],
+            ]);
+
+            if ($start_date !== null && $end_date !== null) {
+                $query4->whereBetween('invoice_date', [$start_date, $end_date]);
+            }
+        $reissueticket = $query4->sum('reissue_profit');
+        $reissueticket_purchase = $query4->sum('supplier_price');
+        $reissueticket_sell = $query4->sum('agent_price');
+
+        $gross_profit = $tickets + $reissueticket + $refundticket + $voidticket;
+        $total_purchase_ticket = $ticket_purchase + $reissueticket_purchase + $refund_purchase + $voidticket_purchase;
+        $total_purchase = $total_purchase_ticket;
+        $total_sell_ticket = $ticket_sell + $reissueticket_sell + $refund_sell + $voidticket_sell;
+        $total_sell = $total_sell_ticket;
+        // dd($reissueticket_purchase, $reissueticket_sell, $voidticket_sell, $voidticket_purchase, $refund_purchase, $refund_sell, $ticket_purchase, $ticket_sell);
+        
+                //   <tr class="flex justify-between px-2 py-1">
+                //     <td class="px-2 py-2 w-[30%]">Refund Purchase c/o</td>
+                //     <td class="px-2 py-2"></td>
+                //     <td class="px-2 py-2 font-semibold">'.$refund_purchase.'</td>
+                    
+                //   </tr>
+                //   <tr class="flex justify-between px-2 py-1">
+                //     <td class="px-2 py-2 w-[30%]">Reissue Purchase c/o</td>
+                //     <td class="px-2 py-2"></td>
+                //     <td class="px-2 py-2 font-semibold">'.$reissueticket_purchase.'</td>
+                    
+                //   </tr>
+                //   <tr class="flex justify-between px-2 py-1">
+                //     <td class="px-2 py-2 w-[30%]">Void Ticket Purchase c/o</td>
+                //     <td class="px-2 py-2"></td>
+                //     <td class="px-2 py-2 font-semibold">'.$voidticket_purchase.'</td>
+                    
+                //   </tr>
+
+                //  <tr class="flex justify-between px-2 py-1">
+                //     <td class="px-2 py-2 w-[30%]">Ticket Profit</td>
+                //     <td class="px-2 py-2"></td>
+                //     <td class="px-2 py-2 font-semibold">'.$tickets.'</td>
+                    
+                //     </tr>
+                //   <tr class="flex justify-between px-2 py-1">
+                //     <td class="px-2 py-2 w-[30%]">Refund Profit</td>
+                //     <td class="px-2 py-2"></td>
+                //     <td class="px-2 py-2 font-semibold">'.$refundticket.'</td>
+                    
+                //   </tr>
+                //   <tr class="flex justify-between px-2 py-1">
+                //     <td class="px-2 py-2 w-[30%]">Reissue Profit</td>
+                //     <td class="px-2 py-2"></td>
+                //     <td class="px-2 py-2 font-semibold">'.$reissueticket.'</td>
+                    
+                //   </tr>
+                //   <tr class="flex justify-between px-2 py-1">
+                //     <td class="px-2 py-2 w-[30%]">Void Ticket Profit</td>
+                //     <td class="px-2 py-2"></td>
+                //     <td class="px-2 py-2 font-semibold">'.$voidticket.'</td>
+                    
+                //   </tr>
+
+            //     <tr class="flex justify-between px-2 py-1">
+            //     <td class="px-2 py-2 w-[30%]">Refund Sell c/o</td>
+            //     <td class="px-2 py-2"></td>
+            //     <td class="px-2 py-2 font-semibold">'.$refund_sell.'</td>
+                
+            // </tr>
+            // <tr class="flex justify-between px-2 py-1">
+            //     <td class="px-2 py-2 w-[30%]">Reissue Sell c/o</td>
+            //     <td class="px-2 py-2"></td>
+            //     <td class="px-2 py-2 font-semibold">'.$reissueticket_sell.'</td>
+                
+            // </tr>
+            // <tr class="flex justify-between px-2 py-1">
+            //     <td class="px-2 py-2 w-[30%]">Void Ticket Sell c/o</td>
+            //     <td class="px-2 py-2"></td>
+            //     <td class="px-2 py-2 font-semibold">'.$voidticket_sell.'</td>
+                
+            // </tr>
+
+        $htmlTable = '';
+       
+        $htmlTable = '
+        <!doctype html>
+            <html>
+
+            <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css" />
+            <script src="https://cdn.tailwindcss.com"></script>
+            <script>
+                tailwind.config = {
+                theme: {
+                    extend: {
+                    colors: {
+                        clifford: "#da373d",
+                    }
+                    }
+                }
+                }
+            </script>
+            <style>
+            
+            </style>
+            </head>
+        ';
+
+
+        $htmlTable .= '
+        <body class="flex">
+          
+          <main class=" mx-auto w-[65%] bg-white shadow-lg py-6">
+           
+            <div class=" px-7 py-3 flex flex-col gap-y-2 shadow-2xl">
+                <h2 class="text-center font-medium text-2xl ">Company Name : SALLU AIR SERVICE</h2>
+                <p class="text-center text-lg">Company Address : 291, Inner Circular Road, Fakirapool, Jomider palace Dhaka, 1000, Bangladesh</p>
+                <p class="text-center font-semibold text-xl underline">Report: Profit/Loss A/c</p>
+                <p class="text-center font-semibold text-xl">Form Date : '. $start_date.  ' To Date : '.$end_date.'</p>
+                
+            </div>
+            <div class="flex mb-10">
+            <table class="table-auto w-full ">
+                <thead>
+                  <tr class="bg-[#0E7490] text-white flex justify-between">
+                    <th class="px-4 py-2 text-left">Particular</th>
+                    <th class="px-4 py-2 text-left">Amount</th>
+                   
+                  </tr>
+                </thead>
+                <tbody id="data" class="text-lg px-2 border ">
+                  <tr class="flex justify-between px-2 border-y">
+                    <td class="px-2 py-2 font-semibold">Purchage Accounts</td>
+                    <td class="px-2 py-2 font-semibold">'.$total_purchase.'</td>
+                    
+                  </tr>
+                  <tr class="flex justify-between px-2 pl-8">
+                    <td class="px-2  w-[30%]">Tickets</td>
+                    <td class="px-2 ">'.$total_purchase_ticket.'</td>
+                    <td class="px-2 "></td>
+                    
+                  </tr>
+                  <tr class="flex justify-between px-2 pl-8">
+                    <td class="px-2  w-[30%]">Umra</td>
+                    <td class="px-2 "></td>
+                    <td class="px-2 "></td>
+                    
+                  </tr>
+                  <tr class="flex justify-between px-2 pl-8">
+                    <td class="px-2  w-[30%]">Manpower</td>
+                    <td class="px-2 "></td>
+                    <td class="px-2 "></td>
+                    
+                  </tr>
+                  <tr class="flex justify-between px-2 pl-8">
+                    <td class="px-2  w-[30%]">Visa</td>
+                    <td class="px-2 "></td>
+                    <td class="px-2 "></td>
+                    
+                  </tr>
+                  
+                  
+                  <tr class="flex justify-between px-2 py-1">
+                    <td class="px-2 py-2 w-[30%]">Gross Profit c/o</td>
+                    <td class="px-2 py-2"></td>
+                    <td class="px-2 py-2 font-semibold">'.$gross_profit.'</td>
+                    
+                  </tr>
+                  <tr class="flex justify-between px-2 py-1">
+                    <td class="px-2 py-2 w-[30%]"></td>
+                    <td class="px-2 py-2"></td>
+                    <td class="px-2  font-semibold border-y border-black"></td>
+                    
+                  </tr>
+                  <tr class="flex justify-between px-2 py-1">
+                        
+                    <td class="px-2 w-[30%] font-semibold">Inderct Expenses</td>
+                    <td class="px-2"></td>
+                    <td class="px-2 font-semibold"></td>
+                    
+                  </tr>
+                  <tr class="flex justify-between px-2 py-1">
+                    
+                    <td class="px-2 w-[30%]">Donations & Gifts</td>
+                    
+                    <td class="px-2 font-semibold"></td>
+                    <td class="px-2"></td>
+                    
+                  </tr>
+                  <tr class="flex justify-between px-2 py-1">
+                    
+                    <td class="px-2 w-[30%]">Office Equipments</td>
+                    
+                    <td class="px-2 font-semibold"></td>
+                    <td class="px-2"></td>
+                    
+                  </tr>
+                  <tr class="flex justify-between px-2 py-1">
+                    
+                    <td class="px-2 w-[30%]">Mobile Charge</td>
+                    
+                    <td class="px-2 font-semibold"></td>
+                    <td class="px-2"></td>
+                    
+                  </tr>
+                  <tr class="flex justify-between px-2 py-1">
+                        
+                    <td class="px-2 py-2 w-[30%]">Net Profit</td>
+                    <td class="px-2 py-2"></td>
+                    <td class="px-2 py-2 font-semibold">'.$gross_profit.'</td>
+                    
+                  </tr>
+                  
+                  
+                  </tbody>
+              </table>
+
+                <table class="table-auto w-full">
+                <thead>
+                    <tr class="bg-[#0E7490] text-white flex justify-between">
+                      <th class="px-4 py-2 text-left">Particular</th>
+                      <th class="px-4 py-2 text-left">Amount</th>
+                     
+                    </tr>
+                  </thead>
+                  <tbody id="data" class="text-lg px-2 border ">
+                    <tr class="flex justify-between px-2 border-y">
+                        <td class="px-2 py-2 font-semibold">Sell Accounts</td>
+                        <td class="px-2 py-2 font-semibold">'.$total_sell.'</td>
+                    
+                    </tr>
+                    <tr class="flex justify-between px-2 pl-8">
+                      <td class="px-2 w-[30%]">Tickets</td>
+                      <td class="px-2">'.$total_sell_ticket.'</td>
+                      <td class="px-2"></td>
+                      
+                    </tr>
+                    <tr class="flex justify-between px-2 pl-8">
+                      <td class="px-2 w-[30%]">Umra</td>
+                      <td class="px-2"></td>
+                      <td class="px-2"></td>
+                      
+                    </tr>
+                    <tr class="flex justify-between px-2 pl-8">
+                      <td class="px-2 w-[30%]">Manpower</td>
+                      <td class="px-2"></td>
+                      <td class="px-2"></td>
+                      
+                    </tr>
+                    <tr class="flex justify-between px-2 pl-8">
+                      <td class="px-2 w-[30%]">Visa</td>
+                      <td class="px-2"></td>
+                      <td class="px-2"></td>
+                      
+                    </tr>
+                  
+                    <tr class="flex justify-between px-2 py-1">
+                        <td class="px-2 py-2 w-[30%]"></td>
+                        <td class="px-2 py-2"></td>
+                        <td class="px-2  font-semibold border-y border-black"></td>
+                        
+                        
+                      </tr>
+                      <tr class="flex justify-between px-2 py-1 mb-auto">
+                        
+                        <td class="px-2 py-2 w-[30%]">Gross Profit c/o</td>
+                        <td class="px-2 py-2"></td>
+                        <td class="px-2 py-2 font-semibold"></td>
+                        
+                      </tr>
+                      <tr class="flex justify-between px-2 py-1">
+                        
+                        <td class="px-2 py-2 w-[30%]">Net Loss</td>
+                        <td class="px-2 py-2"></td>
+                        <td class="px-2 py-2 font-semibold"></td>
+                        
+                      </tr>
+                      
+                    
+                    
+                    </tbody>
+              </table>
+            </div>
+            <div class="w-[50%] flex justify-end">
+            <p class="font-bold text-xl">Gross Profit : '.$gross_profit.'</p>
+            <p class="font-medium text-lg"></p>
+            </div>
+          </main>
+          <script type="text/javascript">
+            
+            
+          </script>
+          <script src="https://unpkg.com/flowbite@1.4.0/dist/flowbite.js"></script>
+        </body>
+        ';
+        $htmlTable .= '</html>';
+            
+
+           
+          
+      
+        return $htmlTable;
+    }
+
+    public function cash_book_report(Request $request){
+
+     
+        $start_date = $request->input('start_date') ?? null;
+        $end_date = $request->input('end_date') ?? null;
+     
+        if ($start_date) {
+            $start_date = (new DateTime($start_date))->format('Y-m-d');
+        }
+        
+        if ($end_date) {
+            $end_date = (new DateTime($end_date))->format('Y-m-d');
+        }
+        
+        $user = Auth::id();
+
+        $receive = Receiver::where([['user', $user],]);
+
+                if ($start_date !== null && $end_date !== null) {
+                    $receive->whereBetween('date', [$start_date, $end_date]);
+                }
+                 
+        $payment =  Payment::where([['user', $user],]);
+
+                if ($start_date !== null && $end_date !== null) {
+                    $payment->whereBetween('date', [$start_date, $end_date]);
+                }
+        $receive = $receive->get();
+        $payment = $payment->get();
+        
+        $alltogether = $receive->concat($payment);
+        $sortedAllTogether = $alltogether->sortBy('created_at');
+
+        foreach ($sortedAllTogether as $item) {
+            if ($item->receive_from == 'agent') {
+                $customerName = Agent::where('id', $item->agent_supplier_id)->value('name');
+            } else {
+                $customerName = Supplier::where('id', $item->agent_supplier_id)->value('name');
+            }
+        
+            $item->customer = $customerName;
+        }
+     
+        
+        $htmlTable = '
+            <!doctype html>
+            <html>
+            
+            <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css" />
+            <script src="https://cdn.tailwindcss.com"></script>
+            <script>
+                tailwind.config = {
+                theme: {
+                    extend: {
+                    colors: {
+                        clifford: "#da373d",
+                    }
+                    }
+                }
+                }
+            </script>
+            <style>
+            
+            </style>
+            </head>
+        ';
+
+        $htmlTable .= '
+        <body class="flex ">
+  
+        <main class="mx-auto w-[65%] ">
+         
+          <div class=" px-7 py-3 shadow-2xl">
+              <h2 class="text-center text-3xl my-2">SALLU AIR SERVICE</h2>
+              <h2 class="text-center font-bold text-xl my-2 underline">Cash Book Report</h2>
+              <div class="flex items-center w-[35%] mx-auto justify-between mb-2">
+                  <div class="text-md">
+                      <!-- <h2 class="font-semibold">Company Name : Sallu Air Service</h2>
+                      <p><span class="font-semibold">Period Date : </span>'. $start_date .'to'. $end_date .'</p> -->
+                      <p>From Date : <span class="font-semibold">'.(new DateTime($start_date))->format('d-m-Y').'</span></p>
+                  </div>
+                  <div class="text-md">
+                      <p>To Date : <span class="font-semibold">'.(new DateTime($end_date))->format('d-m-Y').'</span></p>
+                      
+                  </div>
+              </div>
+          </div>
+          <table class="table-auto w-full shadow-2xl">
+              <thead>
+                <tr class="bg-[#0E7490] text-white">
+                  <th class="px-4 py-2 text-left">SL</th>
+                  <th class="px-4 py-2 text-left">Date</th>
+                  <th class="px-4 py-2 text-left">Account Name</th>
+                  <th class="px-4 py-2 text-left">Narration</th>
+                  <th class="px-4 py-2 text-left">Receive</th>
+                  <th class="px-4 py-2 text-left">Payment</th>
+                 
+                </tr>
+              </thead>
+              <tbody id="data">
+        ';
+        $index = 0;
+        foreach ($sortedAllTogether as $data) {
+            $htmlTable .= '<tr>
+                <td>' . ($index + 1) . '</td>
+                <td>' . (new DateTime($data->date))->format('d-m-Y') . '</td>
+                <td>' . $data->customer . '(' . $data->invoice . ')' . '</td>
+                <td>' . $data->remark . '</td>';
+            
+            if ($data->getTable() == 'receive') {
+                $htmlTable .= '<td>' . $data->amount . '</td>
+                    <td></td>';
+            } else {
+                $htmlTable .= '<td></td>
+                    <td>' . $data->amount . '</td>';
+            }
+            
+            $htmlTable .= '</tr>';
+            $index++;
+        }
+        
+        
         return $htmlTable;
     }
 

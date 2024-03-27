@@ -621,16 +621,20 @@
                         url: '/get-last-id', // Replace with the actual URL to fetch the last ID
                         method: 'GET',
                         success: function(response) {
-                            let lastId = response.lastId;
-                            lastId = parseInt(lastId) + 1;
+                            let invoice = response.invoice;
+                            // let lastId = response.lastId;
+                            // if (lastId == null){
+                            //     lastId = 0;
+                            // }
+                            // lastId = parseInt(lastId) + 1;
 
                             // Format the lastId with leading zeros to make it 6 digits
-                            const formattedLastId = lastId.toString().padStart(6, '0');
+                            // const formattedLastId = lastId.toString().padStart(6, '0');
 
-                            const randomString = `INVT-${formattedLastId}`;
+                            // const randomString = `INVT-${formattedLastId}`;
 
                             // Resolve the promise with the generated random string
-                            resolve(randomString);
+                            resolve(invoice);
                         },
                         error: function(error) {
                             console.error('Error fetching last ID:', error);

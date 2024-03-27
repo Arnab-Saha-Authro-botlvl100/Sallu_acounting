@@ -32,6 +32,9 @@ class OrderController extends Controller
 
     public function store(Request $request)
     {
+        // dd("d");
+        dd($request->all());
+
        $validatedData = $request->validate([
             'date' => 'required|date',
             'type' => 'required|integer|exists:type,id',
@@ -48,7 +51,6 @@ class OrderController extends Controller
             'remark' => 'nullable|string',
             'invoice' => 'required|string|max:255',
         ]);
-        
 
         if($validatedData){
             // dd($request->all());
@@ -77,7 +79,14 @@ class OrderController extends Controller
             // Now $profit contains the calculated profit based on the conditions
             $order->profit = $profit;
             $order->user = Auth::id();
-            $isdone = $order->save();
+
+            $agent = Agent::where('id', $validatedData['agent'])->get();
+            $agent->amount += $validatedData['contact_amount'];
+
+            $supplier = Supplier::where('id', $validatedData['supplier'])->get();
+            $supplier->amount += $validatedData['payable_amount'];
+
+            $isdone = $order->save() && $agent->save() && $supplier->save();
 
             if($isdone){
                 return redirect()->route('order.view')->with('success', 'Order added successfully');

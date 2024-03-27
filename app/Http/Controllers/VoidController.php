@@ -121,11 +121,28 @@ class VoidController extends Controller
         $voidticket->now_agent_fere = $request->agent_refundfare;
         $voidticket->now_supplier_fare = $request->supplier_refundfare;
         $voidticket->user = Auth::id();
+
         $agentRefundFare = $request->input('agent_refundfare');
         $supplierRefundFare = $request->input('supplier_refundfare');
+
         $profit = $agentRefundFare - $supplierRefundFare;
 
         $voidticket->void_profit = $profit;
+
+        $agent = Agent::where('id', $request->agent)->first();
+        $agent_prev_tk = $agent->amount;
+        $agent_now_tk =   ($agent_prev_tk - $request->agent_fare)+$request->agent_refundfare;
+
+
+        $supplier = Supplier::where('id', $request->supplier)->first();
+        $supplier_prev_tk = $supplier->amount;
+        $supplier_now_tk = $request->supplier_refundfare + ($supplier_prev_tk - $request->supplier_fare);
+
+
+        $voidticket->prev_agent_tk = $agent_prev_tk;
+        $voidticket->prev_supplier_tk = $supplier_prev_tk;
+        $voidticket->now_agent_amount = $agent_now_tk;
+        $voidticket->now_supplier_amount = $supplier_now_tk;
 
      
         $ticketParams = [

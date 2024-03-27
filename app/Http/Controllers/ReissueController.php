@@ -74,6 +74,23 @@ class ReissueController extends Controller
         $reissueticket->now_supplier_fare = $request->supplier_reissuefare;
         $reissueticket->user = Auth::id();
 
+        $agent = Agent::where('id', $request->agent)->first();
+        // $agent->amount -= $agentFare;
+        $agent_prev_tk = $agent->amount;
+        $agent_now_tk = $request->agent_reissuefare + $agent_prev_tk;
+
+
+        $supplier = Supplier::where('id', $request->supplier)->first();
+        // $supplier->amount -= $supplierFare;
+        $supplier_prev_tk = $supplier->amount;
+        $supplier_now_tk = $request->supplier_reissuefar + $supplier_prev_tk;
+
+
+        $reissueticket->prev_agent_tk = $agent_prev_tk;
+        $reissueticket->prev_supplier_tk = $supplier_prev_tk;
+        $reissueticket->now_agent_amount = $agent_now_tk;
+        $reissueticket->now_supplier_amount = $supplier_now_tk;
+
         $agentReissueFare = $request->input('agent_reissuefare');
         $supplierReissueFare = $request->input('supplier_reissuefare');
         $profit = $agentReissueFare - $supplierReissueFare;
@@ -112,8 +129,8 @@ class ReissueController extends Controller
 
         $reissueticket->save();
         // Your existing logic for updating ticket, agent, and supplier
-        $ticket->is_void = 1;
-        $ticket->void_profit = $profit;
+        $ticket->is_reissue = 1;
+        $ticket->reissue_profit = $profit;
 
         $agent = Agent::where('id', $agent)->first();
         // $agent->amount -= $agentFare;

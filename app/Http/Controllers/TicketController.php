@@ -71,13 +71,13 @@ class TicketController extends Controller
             // Start a database transaction
             DB::beginTransaction();
             foreach ($request['ticket_no'] as $index => $ticketNumber) {
-                // dd($request['passenger_name'][$index], $ticketNumber);
+                // dd($request['passenger_name'][$index], $ticketNumber, $ticketNoKeys, $request['ticket_no']);
                 $count += 1;
                 $ticket = new Ticket();
                 $ticket->flight_date = $request['flight_date'];
                 $ticket->invoice_date = $request['invoice_date'];
                 $ticket->invoice = $request['invoice_no'];
-                $ticket->ticket_no = $ticketNumber;
+                $ticket->ticket_no = $request['ticket_no'][$index];
                 $ticket->sector = $request['sector'];
                 $ticket->stuff = $request['stuff'];
                                 
@@ -118,12 +118,12 @@ class TicketController extends Controller
 
                 $supplier = Supplier::find($request['supplier']);
                 $supplier_prev_amount = $supplier->amount;
-                $supplier_amount = $count * (float)$request['supplier_price'];
-                $supplier_new_amount = $supplier_prev_amount + $supplier_amount;
+                $supplier_amount = floatval($supplier_prev_amount) + floatval($request['supplier_price']);
+                $supplier_new_amount = $supplier_amount;
                 // $agent->amount += $agent_amount;
                 // $agent->save();
         
-                $supplier->amount += $supplier_amount;
+                $supplier->amount = $supplier_amount;
                 $supplier->save();
 
                 $ticket->supplier_prev_amount = $supplier_prev_amount;
@@ -134,24 +134,10 @@ class TicketController extends Controller
 
                 
             }
-            // $agent = Agent::where('id',$request['agent'])->first();
-            // $agent_amount = $count * parseFloat($request['agent_price']);
-
-            // $supplier = Supplier::where('id',$request['supplier'])->first();
-            // $supplier_amount = $count * parseFloat($request['supplier_price']);
-
-            // $agent_prev_amount = $agent->amount;
-            // $agent_new_amount = parseFloat($agent_prev_amount) + $agent_amount;
-            // $agent->amount = $agent_new_amount;
-            // $agent->save();
+  
 
                 if($flag)
                 {
-                
-                    // $agent = Agent::find($request['agent']);
-                    // $agent_amount = $count * (float)$request['agent_price'];
-            
-                  
 
                     if($request['ait']){
 
@@ -250,12 +236,10 @@ class TicketController extends Controller
                 $ticket->supplier_prev_amount = $supplier_prev_amount;
                 $ticket->supplier_new_amount = $supplier_new_amount;
 
-                // dd($ticket);
                 $flag = false;
                 $flag = $ticket->save();
 
-                dd($flag);
-
+               
                 if($flag)
                 {
                 
@@ -285,10 +269,9 @@ class TicketController extends Controller
             
             }
             catch (\Exception $e) {
-                // Something went wrong, rollback the transaction
+
                 DB::rollBack();
             
-                // Log the error or handle it as needed
                 return redirect()->back()->with('error', 'Error adding tickets: ' . $e->getMessage());
             }
         
@@ -451,7 +434,30 @@ class TicketController extends Controller
     public function getlastid(){
         try {
             $lastId = Ticket::latest('id')->value('id');
-            return response()->json(['lastId' => $lastId]);
+            $newInvoice = 0;
+
+            if ($lastId) {
+                $ticket = Ticket::find($lastId);
+                if ($ticket) {
+                    $invoice = $ticket->invoice;
+                    $parts = explode("-", $invoice);
+                    $partAfterHyphen = end($parts); // Extract part after hyphen
+                    $newPartAfterHyphen = floatval($partAfterHyphen) + 1; // Increment invoice number
+                    $newInvoice = $parts[0] . "-" . str_pad($newPartAfterHyphen, strlen($partAfterHyphen), '0', STR_PAD_LEFT); // Concatenate back to original format
+                    
+                } else {
+                   
+                }
+            }
+            else{
+                $lastId = 0;
+                $newInvoice = "INVT-0000001";
+            }
+        //   dd($newInvoice, $lastId);
+
+            // Return the last ID and associated invoice as JSON response
+            return response()->json(['lastId' => $lastId, 'invoice' => $newInvoice]);
+
         } catch (\Exception $e) {
             // Handle any exceptions that might occur during the process
             return response()->json(['error' => 'Error fetching last ID'], 500);
